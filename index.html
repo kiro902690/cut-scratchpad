@@ -59,7 +59,18 @@
 <body>
 
 <h1>Cut Scratchpad</h1>
-<div class="sub">Targets ~1900 kcal / ~150g protein &middot; buffer only (keeps ~7 days on this phone) &middot; paste into your Sheet</div>
+<div class="sub">Targets ~1900 kcal / ~150g protein &middot; buffer (keeps ~60 days on this phone) &middot; paste into your Sheet</div>
+
+<div id="countdown" style="background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:11px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+  <div>
+    <div style="font-size:12px; color:var(--muted);">Cut deadline &middot; goal 70 kg</div>
+    <div style="font-size:15px; font-weight:600;" id="cdMain">—</div>
+  </div>
+  <div style="text-align:right;">
+    <div style="font-size:26px; font-weight:700; color:var(--gold); line-height:1;" id="cdDays">—</div>
+    <div style="font-size:11px; color:var(--muted);">days left</div>
+  </div>
+</div>
 
 <div class="daynav">
   <button id="prev" aria-label="previous day">&#8249;</button>
@@ -113,7 +124,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TC=1900, TP=150, KEY="cutScratchpad_v1", KEEP_DAYS=7;
+const TC=1900, TP=150, KEY="cutScratchpad_v1", KEEP_DAYS=60;
+const PLAN_START="2026-09-08", PLAN_END="2026-11-06", GOAL=70;
 const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 let store=load(), cur=iso(new Date());
@@ -198,6 +210,27 @@ document.getElementById("clearDay").onclick=()=>{
   if(confirm("Clear all entries for "+fmt(cur)+"?")){delete store.days[cur];save();render();toast("Day cleared");}
 };
 
+function renderCountdown(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const end=parse(PLAN_END), start=parse(PLAN_START);
+  const dayMs=86400000;
+  const left=Math.round((end-today)/dayMs);
+  const dayNum=Math.round((today-start)/dayMs)+1;
+  const total=Math.round((end-start)/dayMs)+1;
+  const cdDays=document.getElementById("cdDays"), cdMain=document.getElementById("cdMain");
+  if(left>0){
+    cdDays.textContent=left;
+    let dn = (dayNum>=1&&dayNum<=total) ? "Day "+dayNum+" of "+total : (dayNum<1?("starts "+fmt(PLAN_START)):"");
+    cdMain.textContent="6 Nov 2026 \u00b7 "+dn;
+  } else if(left===0){
+    cdDays.textContent="0";cdMain.textContent="Deadline is today \u2014 6 Nov";
+  } else {
+    cdDays.textContent="\u2713";cdDays.style.color="var(--teal)";
+    cdMain.textContent="Cut window complete \u2014 reassess";
+  }
+}
+
+renderCountdown();
 render();
 </script>
 </body>
