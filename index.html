@@ -109,9 +109,15 @@
   </div>
 </div>
 
+<div style="font-size:12px; color:var(--muted); margin:2px 0 6px;">This day</div>
 <div class="btns">
   <button id="cpText">Copy as text</button>
   <button id="cpRows" class="primary">Copy as sheet rows</button>
+</div>
+<div style="font-size:12px; color:var(--muted); margin:14px 0 6px;">All days in buffer</div>
+<div class="btns">
+  <button id="cpAllText">Copy all as text</button>
+  <button id="cpAllRows" class="primary">Copy all as rows</button>
 </div>
 <button class="clearbtn" id="clearDay">Clear this day</button>
 <textarea id="out" style="display:none;" readonly></textarea>
@@ -199,6 +205,41 @@ document.getElementById("cpRows").onclick=()=>{
   if(!d.meals.length){toast("No food yet");return;}
   const rows=d.meals.map(m=>[cur,m.food,m.kcal,m.protein].join("\t")).join("\n");
   copy(rows);
+};
+function dayBlock(k){
+  const d=store.days[k];
+  const tc=d.meals.reduce((s,m)=>s+m.kcal,0), tp=d.meals.reduce((s,m)=>s+m.protein,0);
+  let t=fmt(k)+"  ("+k+")\n"+d.meals.map(m=>"  - "+m.food+"  ["+m.kcal+" kcal, "+m.protein+"g P]").join("\n")+
+    "\n  TOTAL: "+tc+" kcal, "+tp+"g protein";
+  if(d.training)t+="\n  Training: "+d.training;
+  if(d.weight)t+="\n  Weight: "+d.weight+" kg";
+  return t;
+}
+function daysWithData(){
+  return Object.keys(store.days).filter(k=>{
+    const d=store.days[k];return (d.meals&&d.meals.length)||d.weight||d.training;
+  }).sort();
+}
+document.getElementById("cpAllText").onclick=()=>{
+  const keys=daysWithData();
+  if(!keys.length){toast("Nothing logged yet");return;}
+  const withMeals=keys.filter(k=>store.days[k].meals.length);
+  let head="CUT LEDGER \u2014 data export\nTargets: ~1900 kcal / ~150g protein\n========================================\n\n";
+  let body=keys.map(dayBlock).join("\n\n");
+  let foot="";
+  if(withMeals.length){
+    const ak=Math.round(withMeals.reduce((s,k)=>s+store.days[k].meals.reduce((a,m)=>a+m.kcal,0),0)/withMeals.length);
+    const ap=Math.round(withMeals.reduce((s,k)=>s+store.days[k].meals.reduce((a,m)=>a+m.protein,0),0)/withMeals.length);
+    foot="\n\n========================================\nDays logged: "+withMeals.length+"\nAvg kcal/day: "+ak+"\nAvg protein/day: "+ap+"g";
+  }
+  copy(head+body+foot);
+};
+document.getElementById("cpAllRows").onclick=()=>{
+  const keys=daysWithData().filter(k=>store.days[k].meals.length);
+  if(!keys.length){toast("No food logged yet");return;}
+  let rows=[];
+  keys.forEach(k=>store.days[k].meals.forEach(m=>rows.push([k,m.food,m.kcal,m.protein].join("\t"))));
+  copy(rows.join("\n"));
 };
 function copy(txt){
   show(txt);
