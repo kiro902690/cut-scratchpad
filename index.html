@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>Cut Scratchpad</title>
+<style>
+  :root{
+    --bg:#12181d; --card:#1a2228; --card2:#212c33; --line:#2c3a43;
+    --text:#e8eef2; --muted:#8fa2ad; --teal:#1baf7a; --gold:#e0b53d;
+    --blue:#2a78d6; --red:#e24b4a; --green:#2aa76a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:15px; line-height:1.5; padding:14px; max-width:560px; margin:0 auto;}
+  h1{font-size:18px; font-weight:600; margin:0 0 2px;}
+  .sub{font-size:12px; color:var(--muted); margin-bottom:14px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px;}
+  .daynav{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;}
+  .daynav button{background:var(--card2); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; width:42px; height:42px; font-size:20px; cursor:pointer;}
+  .daynav .date{flex:1; text-align:center; font-size:16px; font-weight:600;}
+  .today-tag{font-size:11px; color:var(--teal); display:block; font-weight:400; margin-top:1px;}
+  .totals{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;}
+  .tcard{background:var(--card2); border-radius:10px; padding:10px 12px;}
+  .tcard .lbl{font-size:12px; color:var(--muted);}
+  .tcard .val{font-size:24px; font-weight:600; margin:2px 0;}
+  .tcard .meta{font-size:11px; color:var(--muted);}
+  .status{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; margin-top:4px;}
+  .row{display:flex; align-items:center; gap:8px; padding:9px 10px; background:var(--card2);
+    border-radius:9px; margin-bottom:6px;}
+  .row .f{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px;}
+  .row .n{font-size:12px; color:var(--muted); white-space:nowrap;}
+  .row .x{background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:0 4px;}
+  .addgrid{display:grid; grid-template-columns:1fr 62px 56px 44px; gap:6px; margin-bottom:6px;}
+  input{background:var(--card2); border:1px solid var(--line); color:var(--text);
+    border-radius:9px; padding:10px; font-size:15px; width:100%;}
+  input::placeholder{color:#5f7078;}
+  .addgrid button{background:var(--teal); border:none; color:#08221a; border-radius:9px; font-size:22px; font-weight:700; cursor:pointer;}
+  .wt{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:4px;}
+  .wt label{font-size:12px; color:var(--muted); display:block; margin-bottom:3px;}
+  .err{font-size:12px; color:var(--red); min-height:16px; margin:2px 0 6px;}
+  .btns{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;}
+  .btns button{background:var(--card2); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:11px; font-size:13px; cursor:pointer;}
+  .btns button.primary{background:var(--gold); color:#1c1606; border-color:var(--gold); font-weight:600;}
+  .clearbtn{width:100%; background:none; border:1px solid var(--line); color:var(--muted);
+    border-radius:10px; padding:9px; font-size:12px; cursor:pointer; margin-top:8px;}
+  textarea{width:100%; height:130px; background:var(--card2); border:1px solid var(--line);
+    color:var(--text); border-radius:10px; padding:10px; font-family:ui-monospace,monospace; font-size:11px; margin-top:8px;}
+  .note{font-size:11px; color:var(--muted); line-height:1.6; margin-top:10px;}
+  .toast{position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
+    background:var(--teal); color:#08221a; padding:9px 16px; border-radius:20px; font-size:13px; font-weight:600;
+    opacity:0; transition:opacity .2s; pointer-events:none;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<h1>Cut Scratchpad</h1>
+<div class="sub">Targets ~1900 kcal / ~150g protein &middot; buffer only (keeps ~7 days on this phone) &middot; paste into your Sheet</div>
+
+<div class="daynav">
+  <button id="prev" aria-label="previous day">&#8249;</button>
+  <div class="date"><span id="dlabel">—</span><span class="today-tag" id="ttag"></span></div>
+  <button id="next" aria-label="next day">&#8250;</button>
+</div>
+
+<div class="card">
+  <div class="totals">
+    <div class="tcard">
+      <div class="lbl">Calories</div>
+      <div class="val" id="kc">0</div>
+      <div class="meta" id="kcm">of 1900</div>
+    </div>
+    <div class="tcard">
+      <div class="lbl">Protein</div>
+      <div class="val" id="pr">0 g</div>
+      <div class="meta" id="prm">of 150</div>
+      <div class="status" id="st"></div>
+    </div>
+  </div>
+
+  <div id="rows"></div>
+
+  <div class="addgrid">
+    <input id="f" placeholder="food"/>
+    <input id="k" placeholder="kcal" inputmode="numeric"/>
+    <input id="p" placeholder="prot" inputmode="numeric"/>
+    <button id="add" aria-label="add">+</button>
+  </div>
+  <div class="err" id="err"></div>
+
+  <div class="wt">
+    <div><label>Weight (kg)</label><input id="w" placeholder="—" inputmode="decimal"/></div>
+    <div><label>Training</label><input id="tr" placeholder="e.g. 3km run"/></div>
+  </div>
+</div>
+
+<div class="btns">
+  <button id="cpText">Copy as text</button>
+  <button id="cpRows" class="primary">Copy as sheet rows</button>
+</div>
+<button class="clearbtn" id="clearDay">Clear this day</button>
+<textarea id="out" style="display:none;" readonly></textarea>
+
+<div class="note">
+  <b>How to use:</b> add foods through the day &rarr; totals tally live. Tap <b>Copy as sheet rows</b> and paste into your cut-tracker Daily Log (pastes into Date / Food / kcal / Protein columns). Tap <b>Copy as text</b> to paste into Claude for comments.<br>
+  This is a buffer, not your backup &mdash; it keeps ~7 days on this phone only and can be cleared by your browser. Your Sheet is the permanent store.
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TC=1900, TP=150, KEY="cutScratchpad_v1", KEEP_DAYS=7;
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let store=load(), cur=iso(new Date());
+
+function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function parse(s){const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);}
+function fmt(s){const d=parse(s);return DOW[d.getDay()]+" "+String(d.getDate()).padStart(2,"0")+" "+MON[d.getMonth()];}
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{days:{}};}catch(e){return{days:{}};}}
+function save(){prune();try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+function prune(){
+  const cut=new Date();cut.setDate(cut.getDate()-KEEP_DAYS);
+  Object.keys(store.days).forEach(k=>{if(parse(k)<cut)delete store.days[k];});
+}
+function day(){return store.days[cur]||(store.days[cur]={meals:[],weight:"",training:""});}
+
+function render(){
+  const d=day();
+  document.getElementById("dlabel").textContent=fmt(cur);
+  document.getElementById("ttag").textContent = cur===iso(new Date()) ? "today" : "";
+  const rows=document.getElementById("rows");rows.innerHTML="";
+  d.meals.forEach((m,i)=>{
+    const r=document.createElement("div");r.className="row";
+    r.innerHTML='<span class="f">'+esc(m.food)+'</span><span class="n">'+m.kcal+' kcal &middot; '+m.protein+'g</span><button class="x" data-i="'+i+'" aria-label="remove">&times;</button>';
+    rows.appendChild(r);
+  });
+  rows.querySelectorAll(".x").forEach(b=>b.onclick=()=>{d.meals.splice(+b.dataset.i,1);save();render();});
+  const tc=d.meals.reduce((s,m)=>s+m.kcal,0), tp=d.meals.reduce((s,m)=>s+m.protein,0);
+  document.getElementById("kc").textContent=tc.toLocaleString();
+  document.getElementById("kcm").textContent = "of 1900 &middot; "+(TC-tc>=0?(TC-tc)+" left":Math.abs(TC-tc)+" over");
+  document.getElementById("kcm").innerHTML = "of 1900 · "+(TC-tc>=0?(TC-tc).toLocaleString()+" left":Math.abs(TC-tc).toLocaleString()+" over");
+  document.getElementById("pr").textContent=tp+" g";
+  document.getElementById("prm").innerHTML = "of 150 · "+(TP-tp>0?(TP-tp)+"g short":"on target");
+  const st=document.getElementById("st");
+  if(d.meals.length===0){st.style.display="none";}
+  else{st.style.display="inline-block";
+    if(tp>=140){st.textContent="On target";st.style.background="rgba(42,167,106,.25)";st.style.color="#5fd39a";}
+    else if(tp>=100){st.textContent="OK";st.style.background="rgba(42,120,214,.25)";st.style.color="#7ab0e8";}
+    else{st.textContent="LOW protein";st.style.background="rgba(226,75,74,.22)";st.style.color="#f08f8f";}
+  }
+  document.getElementById("w").value=d.weight||"";
+  document.getElementById("tr").value=d.training||"";
+}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+document.getElementById("add").onclick=()=>{
+  const f=document.getElementById("f"),k=document.getElementById("k"),p=document.getElementById("p"),err=document.getElementById("err");
+  if(!f.value.trim()||!k.value){err.textContent="Enter a food and its calories first";return;}
+  err.textContent="";
+  day().meals.push({food:f.value.trim(),kcal:Math.round(+k.value)||0,protein:Math.round(+p.value)||0});
+  f.value=k.value=p.value="";save();render();f.focus();
+};
+document.getElementById("p").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("add").click();});
+document.getElementById("w").oninput=e=>{day().weight=e.target.value;save();};
+document.getElementById("tr").oninput=e=>{day().training=e.target.value;save();};
+document.getElementById("prev").onclick=()=>{const d=parse(cur);d.setDate(d.getDate()-1);cur=iso(d);render();};
+document.getElementById("next").onclick=()=>{const d=parse(cur);d.setDate(d.getDate()+1);cur=iso(d);render();};
+
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1400);}
+function show(txt){const o=document.getElementById("out");o.value=txt;o.style.display="block";o.select();}
+
+document.getElementById("cpText").onclick=()=>{
+  const d=day(),tc=d.meals.reduce((s,m)=>s+m.kcal,0),tp=d.meals.reduce((s,m)=>s+m.protein,0);
+  let t=fmt(cur)+"  ("+cur+")\n"+d.meals.map(m=>"  - "+m.food+"  ["+m.kcal+" kcal, "+m.protein+"g P]").join("\n")+
+    "\n  TOTAL: "+tc+" kcal, "+tp+"g protein";
+  if(d.training)t+="\n  Training: "+d.training;
+  if(d.weight)t+="\n  Weight: "+d.weight+" kg";
+  copy(t);
+};
+document.getElementById("cpRows").onclick=()=>{
+  const d=day();
+  if(!d.meals.length){toast("No food yet");return;}
+  const rows=d.meals.map(m=>[cur,m.food,m.kcal,m.protein].join("\t")).join("\n");
+  copy(rows);
+};
+function copy(txt){
+  show(txt);
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast("Copied \u2713"),()=>{document.getElementById("out").select();toast("Select & copy");});
+  }else{document.getElementById("out").select();try{document.execCommand("copy");toast("Copied \u2713");}catch(e){toast("Select & copy");}}
+}
+document.getElementById("clearDay").onclick=()=>{
+  if(confirm("Clear all entries for "+fmt(cur)+"?")){delete store.days[cur];save();render();toast("Day cleared");}
+};
+
+render();
+</script>
+</body>
+</html>
